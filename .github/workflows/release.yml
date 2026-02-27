@@ -1,0 +1,190 @@
+name: Build and Release RadLocal
+
+# Se activa cuando se pushea un tag de versión: v1.0.0, v2.1.3, etc.
+on:
+  push:
+    tags:
+      - 'v*'
+  # También permite dispararlo manualmente desde GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versión a publicar (ej: 1.2.0)'
+        required: true
+        default: '0.1.0'
+
+jobs:
+  build-linux:
+    name: Build Linux Binary
+    runs-on: ubuntu-22.04      # Ubuntu LTS – máxima compatibilidad con distros Linux
+
+    steps:
+      # ─── 1. Checkout ───────────────────────────────────────────────────────
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ─── 2. Python ─────────────────────────────────────────────────────────
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # ─── 3. Dependencias del sistema (para PyQt6 en Ubuntu) ───────────────
+      - name: Instalar dependencias del sistema
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libxcb-xinerama0 \
+            libxcb-randr0 \
+            libxcb-render-util0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-shape0 \
+            libxcb-xkb1 \
+            libxkbcommon-x11-0 \
+            libegl1 \
+            libgl1-mesa-glx \
+            upx-ucl
+
+      # ─── 4. Dependencias Python ────────────────────────────────────────────
+      - name: Instalar dependencias Python
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      # ─── 5. Determinar versión ─────────────────────────────────────────────
+      - name: Determinar versión del release
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
+          echo "tarball=radlocal-v${VERSION}-linux.tar.gz" >> $GITHUB_OUTPUT
+          echo "Building version: ${VERSION}"
+
+      # ─── 6. Generar version.json con hashes reales ─────────────────────────
+      - name: Generar version.json
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DOWNLOAD_BASE="https://raw.githubusercontent.com/${{ github.repository }}/main/"
+          RELEASE_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          UPDATABLE_FILES=(
+            "map_widget.py" "cartographer.py" "threat_profiler.py"
+            "esi_tracker.py" "intel_parser.py" "intel_tailer.py"
+            "logistics.py" "audio_engine.py" "auth.py"
+            "systems_cache.json" "esi_ids.json"
+          )
+
+          # Generar el bloque de hashes en Python (más limpio que bash puro)
+          python3 << 'PYEOF'
+          import json, hashlib, os, sys
+          from pathlib import Path
+
+          updatable = [
+              "map_widget.py", "cartographer.py", "threat_profiler.py",
+              "esi_tracker.py", "intel_parser.py", "intel_tailer.py",
+              "logistics.py", "audio_engine.py", "auth.py",
+              "systems_cache.json", "esi_ids.json"
+          ]
+
+          files = {}
+          for fname in updatable:
+              p = Path(fname)
+              if p.exists():
+                  h = hashlib.sha256(p.read_bytes()).hexdigest()
+                  files[fname] = f"sha256:{h}"
+              else:
+                  print(f"WARN: {fname} no encontrado, omitido del manifiesto", file=sys.stderr)
+
+          manifest = {
+              "version": os.environ.get("VERSION", "0.0.0"),
+              "tag": f"v{os.environ.get('VERSION', '0.0.0')}",
+              "release_date": os.environ.get("RELEASE_DATE", ""),
+              "release_notes": "Ver CHANGELOG para detalles.",
+              "download_base": os.environ.get("DOWNLOAD_BASE", ""),
+              "files": files
+          }
+
+          with open("version.json", "w") as f:
+              json.dump(manifest, f, indent=4)
+
+          print("version.json generado:")
+          print(json.dumps(manifest, indent=2))
+          PYEOF
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_DATE: ${{ steps.version.outputs.tag }}
+          DOWNLOAD_BASE: https://raw.githubusercontent.com/${{ github.repository }}/main/
+
+      # ─── 7. PyInstaller ────────────────────────────────────────────────────
+      - name: Empaquetar con PyInstaller
+        run: |
+          # Necesitamos un display virtual para PyQt6 en CI (headless)
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1024x768x24 &
+          sleep 2
+
+          pyinstaller radlocal.spec --noconfirm --clean
+          
+          # Verificar que el ejecutable existe
+          ls -la dist/radlocal/radlocal
+
+      # ─── 8. Crear tarball ──────────────────────────────────────────────────
+      - name: Crear archivo comprimido
+        run: |
+          cp version.json dist/radlocal/version.json
+          cd dist
+          tar -czf "../${{ steps.version.outputs.tarball }}" radlocal/
+          cd ..
+          ls -lh "${{ steps.version.outputs.tarball }}"
+
+      # ─── 9. Publicar GitHub Release ───────────────────────────────────────
+      - name: Crear GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "RadLocal ${{ steps.version.outputs.tag }}"
+          body: |
+            ## RadLocal ${{ steps.version.outputs.tag }}
+
+            ### Instalación (primera vez)
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | bash
+            ```
+
+            ### Actualización manual
+            Las actualizaciones son **automáticas** al abrir la app.
+            Si necesitas actualizar manualmente, vuelve a correr el instalador.
+
+            ### Archivos del release
+            - `radlocal-${{ steps.version.outputs.tag }}-linux.tar.gz` – Binario completo para Linux x64
+            - `version.json` – Manifiesto de versión para el auto-updater
+          files: |
+            ${{ steps.version.outputs.tarball }}
+            version.json
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ─── 10. Actualizar version.json en la rama main ──────────────────────
+      # Esto es crítico: el updater siempre lee desde raw.githubusercontent.com/main/version.json
+      - name: Commit version.json a main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.tag }} [skip ci]"
+          git push origin HEAD:main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
