@@ -20,7 +20,7 @@
 set -euo pipefail
 
 # ─── Configuración ────────────────────────────────────────────────────────────
-GITHUB_USER="TU_USUARIO"    # <- Cambia esto
+GITHUB_USER="edwardjardy"    # <- Cambia esto
 GITHUB_REPO="RadLocal"
 APP_NAME="RadLocal"
 INSTALL_DIR="${HOME}/.local/share/radlocal"
