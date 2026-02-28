@@ -98,7 +98,7 @@ echo -e "${BOLD}RadLocal se instalará en:${NC} ${INSTALL_DIR}"
 echo -e "${BOLD}Acceso desde:${NC} ${BIN_DIR}/radlocal (comando) y menú de aplicaciones"
 echo ""
 echo -n "¿Continuar? [S/n] "
-read -r response
+read -r response < /dev/tty
 if [[ "$response" =~ ^[nN]$ ]]; then
     echo "Instalación cancelada."
     exit 0

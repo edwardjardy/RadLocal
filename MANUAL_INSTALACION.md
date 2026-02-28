@@ -1,7 +1,7 @@
 # RadLocal – Manual de Instalación
 
 **Herramienta táctica de inteligencia para EVE Online**  
-Versión actual: `0.1.0`
+Versión actual: `0.1.1`
 
 ---
 
@@ -45,14 +45,14 @@ El instalador se encargará automáticamente de:
 ▶ Verificando herramientas necesarias...
 ✓ Herramientas OK
 ▶ Consultando GitHub por la última versión...
-✓ Versión más reciente: v0.1.0
-▶ Descargando radlocal-v0.1.0-linux.tar.gz...
+✓ Versión más reciente: v0.1.1
+▶ Descargando radlocal-v0.1.1-linux.tar.gz...
 ✓ Descarga completada
 ✓ Archivos extraídos
 ✓ Symlink creado en ~/.local/bin/radlocal
 ✓ Entrada del menú de aplicaciones creada
 ╔══════════════════════════════════════════════════════════╗
-║  ✓ RadLocal v0.1.0 instalado exitosamente!            ║
+║  ✓ RadLocal v0.1.1 instalado exitosamente!            ║
 ╚══════════════════════════════════════════════════════════╝
 ```
 
