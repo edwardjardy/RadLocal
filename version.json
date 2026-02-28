@@ -1,7 +1,7 @@
 {
-    "version": "0.1.1",
-    "tag": "v0.1.1",
-    "release_date": "2026-02-28T01:45:18Z",
+    "version": "0.2.0",
+    "tag": "v0.2.0",
+    "release_date": "2026-02-28T05:52:39Z",
     "release_notes": "Nueva versión de RadLocal. Ver CHANGELOG para detalles.",
     "download_base": "https://raw.githubusercontent.com/edwardjardy/RadLocal/main/",
     "files": {
@@ -14,6 +14,7 @@
             "logistics.py": "sha256:3f25ef0ecc317844d4ae0fb484f69e146e3e48708a8331fd2bfb041f8d1ba8ce",
             "audio_engine.py": "sha256:0754bbf82977ffb963c6b49cc43164bd38bf65235a384b215fad5879961bc33d",
             "auth.py": "sha256:24398631af44d23805e1a23096bb7a34095c755c0b73dc602cb180e765ff4e5e",
+            "config_manager.py": "sha256:70de30e4d03c01c6414d23701c7444625697905f6e84d99c7cb33cacdccb8079",
             "systems_cache.json": "sha256:ffb26a949538081ea4adcb88d60d8b6a79f88cfcc1eafa352c12f6b8708a8eab",
             "esi_ids.json": "sha256:3f58c131939587b0b15059150a720e4fde342cde74b555a7c6ef5c0e4de140e9"
     }

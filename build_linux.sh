@@ -31,6 +31,7 @@ UPDATABLE_FILES=(
     "logistics.py"
     "audio_engine.py"
     "auth.py"
+    "config_manager.py"
     "systems_cache.json"
     "esi_ids.json"
 )
